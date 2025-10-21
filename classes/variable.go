@@ -1,5 +1,5 @@
 // class - 2
-package main
+package classes
 
 import "fmt"
 
