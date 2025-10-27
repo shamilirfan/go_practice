@@ -42,8 +42,8 @@ func createJwt(secret string, data Payload) (string, error) {
 	secretByteArr := []byte(secret)   // secret key convert to byte
 	messageByteArr := []byte(message) // message(header, payload) key convert to byte
 
-	h := hmac.New(sha256.New, messageByteArr)
-	h.Write(secretByteArr)
+	h := hmac.New(sha256.New, secretByteArr)
+	h.Write(messageByteArr)
 	signature := h.Sum(nil)
 	signatureBase64 := base_64(signature) // call base_64 function to to convert base64
 
