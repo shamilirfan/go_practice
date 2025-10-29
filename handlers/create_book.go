@@ -42,6 +42,7 @@ func CreateBook(w http.ResponseWriter, r *http.Request) {
 		// Create uploads folder if not exist
 		os.MkdirAll("uploads", os.ModePerm)
 		filePath = filepath.Join("uploads", handler.Filename) // filePath = uploads/image-1.jpg
+		filePath = filepath.ToSlash(filePath)
 
 		/*
 			মানে হলো —
