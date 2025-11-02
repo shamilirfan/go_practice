@@ -16,8 +16,6 @@ func Connect() {
 		log.Fatal(err)
 	}
 
-	// এখানে আমরা পিং দিয়ে কানেকশন টেস্ট করবো
-	// DB.Ping() মানে হলো — “এই ডেটাবেজের সাথে সত্যিই কানেকশন হচ্ছে কিনা, একটু পিং করে দেখি!”
 	err = DB.Ping()
 	if err != nil {
 		log.Fatal("❌ Database connection failed:", err)
