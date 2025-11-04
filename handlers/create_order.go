@@ -9,7 +9,7 @@ import (
 func CreateOrder(db *sql.DB, order *models.Order) (err error) {
 	query := `
 		INSERT INTO orders (
-			customer_name, 
+			customer_id, 
 			road_number,
 			holding_number,
 			area, district, 
@@ -19,8 +19,15 @@ func CreateOrder(db *sql.DB, order *models.Order) (err error) {
 		VALUES ($1, $2, $3, $4, $5, $6,'Pending')
 		RETURNING id, created_at
 	`
+	/*
+		👉 QueryRow() এর কাজ হলো — একটা single row (একটা record) ডাটাবেস থেকে নিয়ে আসা।
+			একটি row রিটার্ন করে। যদি query তে একাধিক row ফেরত আসে, শুধু প্রথমটা নেয়।
+
+		👉 Scan() এর কাজ হলো — QueryRow() থেকে পাওয়া সেই একটি row-এর কলাম ভ্যালুগুলোকে
+			Go ভ্যারিয়েবলগুলোর মধ্যে কপি করে দেওয়া।
+	*/
 	err = db.QueryRow(query,
-		order.CustomerName,
+		order.CustomerID,
 		order.RoadNumber,
 		order.HoldingNumber,
 		order.Area,
@@ -47,13 +54,21 @@ func CreateOrder(db *sql.DB, order *models.Order) (err error) {
 		order.Items[i].BookName = name
 		order.Items[i].BookImage = image
 		order.Items[i].UnitPrice = price
-		order.Items[i].Subtotal = price * float64(order.Items[i].Quantity)
-		total += order.Items[i].Subtotal
+		order.Items[i].TotalPrice = price * float64(order.Items[i].Quantity)
+		total += order.Items[i].TotalPrice
 
 		query = `
-			INSERT INTO order_items (order_id, book_id, book_name, book_image, quantity, unit_price, subtotal)
+			INSERT INTO order_items (order_id, book_id, book_name, book_image, quantity, unit_price, total_price)
 			VALUES ($1, $2, $3, $4, $5,  $6,  $7)
 		`
+		/*
+			👉 db.Exec() কোনো row ফেরত দেয় না — শুধু ডাটাবেসে একটা রেকর্ড insert, update, delete করে।
+				db.Exec() দুইটা জিনিস ফেরত দেয়:
+				1.
+					. sql.Result → এতে থাকে: LastInsertId() — সর্বশেষ insert করা row-এর ID (যদি DB সমর্থন করে)
+					. RowsAffected() — কতগুলো row পরিবর্তন হয়েছে।
+				2.	.err → error হলে সেটা ধরে রাখে।
+		*/
 		_, err = db.Exec(
 			query,
 			order.ID,
@@ -62,20 +77,13 @@ func CreateOrder(db *sql.DB, order *models.Order) (err error) {
 			order.Items[i].BookImage,
 			order.Items[i].Quantity,
 			order.Items[i].UnitPrice,
-			order.Items[i].Subtotal,
+			order.Items[i].TotalPrice,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to insert order item: %w", err)
 		}
 	}
 
-	query = `UPDATE orders SET total_price = $1 WHERE id = $2`
-	_, err = db.Exec(query, total, order.ID)
-	if err != nil {
-		return err
-	}
-
-	order.TotalPrice = total
 	order.Status = "Pending"
 	return nil
 }
