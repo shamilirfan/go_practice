@@ -11,6 +11,7 @@ func HandleCreateOrder(w http.ResponseWriter, r *http.Request) {
 	if db.DB == nil {
 		db.Connect()
 	}
+
 	var order models.Order
 	if err := json.NewDecoder(r.Body).Decode(&order); err != nil {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
