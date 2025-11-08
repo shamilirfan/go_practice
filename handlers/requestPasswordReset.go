@@ -41,35 +41,48 @@ func generateToken() string {
 }
 
 func RequestPasswordReset(w http.ResponseWriter, r *http.Request, db *sql.DB) {
-	var req ResetRequest
-	json.NewDecoder(r.Body).Decode(&req)
+	w.Header().Set("Content-Type", "application/json")
 
+	var req ResetRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	// Check if user exists
 	var userID int
 	err := db.QueryRow("SELECT id FROM users WHERE email=$1", req.Email).Scan(&userID)
 	if err != nil {
-		http.Error(w, "No user found", http.StatusNotFound)
+		http.Error(w, "No user found with this email", http.StatusNotFound)
 		return
 	}
 
+	// Generate token & expiry
 	token := generateToken()
 	expires := time.Now().Add(15 * time.Minute)
 
-	_, err = db.Exec("INSERT INTO password_resets (user_id, token, expires_at) VALUES ($1,$2,$3)",
-		userID, token, expires)
+	// Store token in DB
+	_, err = db.Exec(`
+		INSERT INTO password_resets (user_id, token, expires_at)
+		VALUES ($1, $2, $3)
+	`, userID, token, expires)
 	if err != nil {
-		http.Error(w, "Failed to create token", http.StatusInternalServerError)
+		http.Error(w, "Failed to create reset token", http.StatusInternalServerError)
 		return
 	}
 
-	resetLink := "http://localhost:8080/reset-password-form?token=" + token
-	subject := "Password Reset Request"
-	body := fmt.Sprintf("Click the link below to reset your password:\n\n%s\n\nThis link expires in 15 minutes.", resetLink)
+	// Create the reset link
+	resetLink := fmt.Sprintf("http://localhost:8080/reset-password-form?token=%s", token)
 
-	if err := utils.SendEmail(req.Email, subject, body); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	// Send email using updated SendEmail (HTML formatted)
+	subject := "Reset your BookShop password"
+	if err := utils.SendEmail(req.Email, subject, resetLink); err != nil {
+		fmt.Println("Email error:", err)
+		http.Error(w, "Failed to send email", http.StatusInternalServerError)
 		return
 	}
 
+	// Success response
 	json.NewEncoder(w).Encode(map[string]string{
 		"message": "Password reset link sent to your email",
 	})
