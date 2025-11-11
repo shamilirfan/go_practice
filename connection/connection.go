@@ -8,8 +8,9 @@ import (
 
 var DB *sql.DB
 
-func InitDB() {
+func Connection() {
 	connStr := "user=postgres password=1234 host=localhost port=5432 dbname=bookShop sslmode=disable"
+	
 	var err error
 	DB, err = sql.Open("postgres", connStr)
 	if err != nil {
