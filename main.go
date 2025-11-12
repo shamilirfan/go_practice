@@ -13,18 +13,18 @@ import (
 )
 
 func main() {
-	// ✅ Load environment variables
+	//  Load environment variables
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
-	// ✅ Connect Database
+	//  Connect Database
 	if connection.DB == nil {
 		connection.Connection()
 	}
 
-	// ✅ Initialize Cloudinary
+	//  Initialize Cloudinary
 	handler.Cld, err = cloudinary.NewFromURL(os.Getenv("CLOUDINARY_URL"))
 	if err != nil {
 		log.Fatalf("Cloudinary initialization failed: %v", err)
@@ -32,8 +32,10 @@ func main() {
 
 	fmt.Println("✅ Cloudinary initialized successfully")
 
-	// ✅ Routes
+	//  Routes
 	http.HandleFunc("/books", handler.UploadHandler)
+	http.HandleFunc("/books/{id}", handler.UpdateHandler)
+	http.HandleFunc("/booksd/{id}", handler.DeleteHandler)
 
 	fmt.Println("🚀 Server running at http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
